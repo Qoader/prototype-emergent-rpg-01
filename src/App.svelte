@@ -21,7 +21,7 @@
     <div class="brand"><span class="brand-mark">✦</span><span>EMBERFALL</span></div>
     <button class="icon-button" aria-label={muted ? 'Unmute' : 'Mute'} onclick={() => (muted = !muted)}>{muted ? '◌' : '◉'}</button>
   </div>
-  <section class="game-card" aria-label="Emberfall game">
+  <section class="game-card" aria-label="Emberfall top-down RPG map">
     <div class="canvas-wrap" bind:this={gameHost}></div>
     <div class="hud">
       <div class="stat"><span class="label">SCORE</span><span class="value">{String(snapshot.score).padStart(4, '0')}</span></div>
@@ -33,5 +33,5 @@
     <button class="gather" onclick={() => game?.collect()}><span>GATHER LUMEN</span><small>tap the wild crystals</small></button>
     <button class="recharge" onclick={() => game?.recharge()} aria-label="Recharge lumen">↻</button>
   </section>
-  <p class="footer-note">The wild remembers every spark.</p>
+  <p class="footer-note">Tap anywhere on the map to move · The wild remembers every spark.</p>
 </main>
