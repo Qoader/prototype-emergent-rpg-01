@@ -9,6 +9,8 @@ pnpm install
 pnpm dev
 ```
 
+Run the unit and integration tests with `pnpm test`, or use `pnpm test:watch` during development.
+
 ## GitHub Pages
 
 The included GitHub Actions workflow builds on every push to `main` and publishes the production `dist` output to a dedicated `gh-pages` branch. Enable **Settings → Pages → Deploy from a branch → gh-pages / root** in repository settings.

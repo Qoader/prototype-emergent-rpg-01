@@ -1,4 +1,5 @@
 import { Application, Container, Graphics, Text, TextStyle } from 'pixi.js';
+import { GameState } from './game-state';
 
 export type GameSnapshot = { score: number; wave: number; energy: number };
 type Crystal = { view: Container; homeY: number; phase: number };
@@ -8,9 +9,7 @@ export class EmberfallGame {
   readonly app = new Application();
   private readonly world = new Container();
   private readonly crystals: Crystal[] = [];
-  private score = 0;
-  private wave = 1;
-  private energy = 3;
+  private readonly state = new GameState();
   private elapsed = 0;
   private onChange: (snapshot: GameSnapshot) => void = () => {};
 
@@ -21,23 +20,20 @@ export class EmberfallGame {
     this.app.stage.addChild(this.world);
     this.createScene();
     this.app.ticker.add(({ deltaTime }) => this.tick(deltaTime));
-    this.onChange(this.snapshot());
+    this.onChange(this.state.snapshot());
   }
 
   destroy() { this.app.destroy(true, { children: true, texture: true }); }
 
   collect() {
-    if (this.energy <= 0 || this.crystals.length === 0) return;
+    if (this.state.snapshot().energy <= 0 || this.crystals.length === 0) return;
     const target = this.crystals[Math.floor(Math.random() * this.crystals.length)];
     target.view.scale.set(1.35); target.view.alpha = 0;
-    this.score += 10; this.energy -= 1;
-    if (this.score % 50 === 0) this.wave += 1;
-    this.onChange(this.snapshot());
+    this.onChange(this.state.collect());
     window.setTimeout(() => { target.view.alpha = 1; target.view.scale.set(1); }, 240);
   }
 
-  recharge() { this.energy = 3; this.onChange(this.snapshot()); }
-  private snapshot(): GameSnapshot { return { score: this.score, wave: this.wave, energy: this.energy }; }
+  recharge() { this.onChange(this.state.recharge()); }
 
   private createScene() {
     const stars = new Graphics();
