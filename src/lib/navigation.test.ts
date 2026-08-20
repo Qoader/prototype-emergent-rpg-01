@@ -25,11 +25,42 @@ function navigationWorld(blocked: (point: WorldPoint) => boolean) {
 }
 
 describe('navigation', () => {
+  it('uses a direct diagonal path when there is clear line of sight', () => {
+    const world = navigationWorld(() => false);
+    const path = findPath({ x: 16, y: 16 }, { x: 80, y: 80 }, world);
+
+    expect(path).toEqual([
+      { x: 24, y: 24 },
+      { x: 88, y: 88 },
+    ]);
+  });
+
+  it('cuts toward a visible rectangle corner instead of following grid sides', () => {
+    const world = navigationWorld((point) => point.x >= 48 && point.x < 80 && point.y >= 32 && point.y < 80);
+    const path = findPath({ x: 24, y: 56 }, { x: 104, y: 56 }, world);
+
+    expect(path.length).toBeLessThan(8);
+    expect(path.some((point) => point.y < 32 || point.y > 80)).toBe(true);
+  });
+
+  it('does not use a diagonal shortcut through an obstacle corner', () => {
+    const world = navigationWorld((point) => point.x >= 48 && point.x < 80 && point.y >= 32 && point.y < 80);
+    const path = findPath({ x: 24, y: 24 }, { x: 104, y: 104 }, world);
+
+    for (let index = 1; index < path.length; index += 1) {
+      const start = path[index - 1], end = path[index], steps = Math.ceil(Math.hypot(end.x - start.x, end.y - start.y) / 4);
+      for (let step = 0; step <= steps; step += 1) {
+        const t = step / steps;
+        expect(world.isWalkable({ x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t })).toBe(true);
+      }
+    }
+  });
+
   it('routes around a blocked wall without diagonal corner cutting', () => {
     const world = navigationWorld((point) => point.x >= 32 && point.x < 48 && point.y < 80);
     const path = findPath({ x: 16, y: 48 }, { x: 80, y: 48 }, world);
 
-    expect(path.length).toBeGreaterThan(5);
+    expect(path.length).toBeGreaterThan(3);
     expect(path.at(-1)).toEqual({ x: 88, y: 56 });
     expect(path.every((point) => !world.isWalkable || world.isWalkable(point))).toBe(true);
     expect(path.some((point) => point.y >= 80)).toBe(true);
