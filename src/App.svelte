@@ -23,5 +23,5 @@
   <section class="game-card" aria-label="Emberfall top-down RPG map">
     <div class="canvas-wrap" bind:this={gameHost}></div>
   </section>
-  <p class="footer-note">Tap anywhere on the map to explore · Rivers, trees, and houses cannot be crossed.</p>
+  <p class="footer-note">Tap anywhere on the map to explore · Rivers and trees cannot be crossed.</p>
 </main>

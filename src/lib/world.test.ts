@@ -15,6 +15,13 @@ describe('procedural terrain and obstacles', () => {
     expect(generator.generate({ x: -3, y: 8 })).toEqual(generator.generate({ x: -3, y: 8 }));
   });
 
+  it('replaces random houses with deterministic settlement and road features', () => {
+    const chunk = new ChunkGenerator({ seed: 42 }).generate({ x: 2, y: 2 });
+    expect(chunk.houses).toEqual([]);
+    expect(chunk.settlements).toBeDefined();
+    expect(chunk.roads).toBeDefined();
+  });
+
   it('changes generated content when the world seed changes', () => {
     const coordinate = { x: 4, y: -2 };
     const first = new ChunkGenerator({ seed: 1 }).generate(coordinate);

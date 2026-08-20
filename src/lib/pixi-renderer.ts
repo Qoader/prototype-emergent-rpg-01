@@ -4,6 +4,7 @@ import { screenToWorld } from './input-mapper';
 import { PixiChunkRenderer } from './pixi-chunk-renderer';
 import { PixiPlayerRenderer } from './pixi-player-renderer';
 import type { WorldService } from './world-manager';
+import { chunkRenderSignature } from './chunk-signature';
 
 export class PixiRenderer implements RendererAdapter {
   readonly app = new Application();
@@ -29,7 +30,7 @@ export class PixiRenderer implements RendererAdapter {
     for (const chunk of chunks) {
       let view = this.chunks.get(chunk.key);
       if (!view) { view = new Container(); this.map.addChildAt(view, 0); this.chunks.set(chunk.key, view); }
-      const signature = JSON.stringify({ coord: chunk.coord, biome: chunk.biome, trees: chunk.trees, houses: chunk.houses, rivers: chunk.rivers });
+      const signature = chunkRenderSignature(chunk);
       if (this.chunkSignatures.get(chunk.key) !== signature) { this.chunkRenderer.render(chunk, view); this.chunkSignatures.set(chunk.key, signature); }
     }
     for (const [key, view] of this.chunks) if (!active.has(key)) { view.destroy({ children: true }); this.chunks.delete(key); this.chunkSignatures.delete(key); }

@@ -19,7 +19,7 @@ describe('App integration', () => {
     expect(mockGame.mount).toHaveBeenCalledOnce();
     expect(screen.queryByText(/lumen/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /gather|recharge/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/rivers, trees, and houses cannot be crossed/i)).toBeInTheDocument();
+    expect(screen.getByText(/rivers and trees cannot be crossed/i)).toBeInTheDocument();
   });
 
   it('toggles mute state through the shell control', async () => {

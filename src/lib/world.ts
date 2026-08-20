@@ -6,6 +6,9 @@ export * from './obstacles';
 export * from './world-config';
 export type { ChunkGenerator as ChunkGeneratorService, WorldChunk } from './chunk-generator';
 export * from './world-manager';
+export * from './settlements';
+export * from './world-features';
+export * from './world-geometry';
 
 import { ProceduralChunkGenerator } from './chunk-generator';
 /** Compatibility name retained for the original public API. */
