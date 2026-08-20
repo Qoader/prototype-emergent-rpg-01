@@ -17,17 +17,22 @@ function bounds(world: WalkabilityMap): Bounds {
 function inBounds(cell: Cell, limit: Bounds): boolean { return cell.x >= limit.minX && cell.x <= limit.maxX && cell.y >= limit.minY && cell.y <= limit.maxY; }
 function walkable(cell: Cell, world: WalkabilityMap): boolean { const center = cellCenter(cell); return world.isWalkable(center) && world.isWalkable({ x: center.x + 7, y: center.y + 7 }) && world.isWalkable({ x: center.x - 7, y: center.y - 7 }); }
 function reconstruct(current: string, cameFrom: Map<string, string>, cells: Map<string, Cell>): WorldPoint[] { const path: WorldPoint[] = []; let cursor: string | undefined = current; while (cursor) { path.push(cellCenter(cells.get(cursor)!)); cursor = cameFrom.get(cursor); } return path.reverse(); }
-function findPathToCell(start: Cell, goal: Cell, world: WalkabilityMap, limit: Bounds): WorldPoint[] | undefined {
-  if (!inBounds(start, limit) || !inBounds(goal, limit) || !walkable(start, world) || !walkable(goal, world)) return undefined;
-  const open = new Set<string>([key(start)]), cells = new Map<string, Cell>([[key(start), start], [key(goal), goal]]), cameFrom = new Map<string, string>(), cost = new Map<string, number>([[key(start), 0]]), estimate = new Map<string, number>([[key(start), distance(start, goal)]]);
+function findPathToCandidates(start: Cell, candidates: ReadonlyArray<Cell>, world: WalkabilityMap, limit: Bounds): WorldPoint[] | undefined {
+  if (!inBounds(start, limit) || !walkable(start, world)) return undefined;
+  const open = new Set<string>([key(start)]), cells = new Map<string, Cell>([[key(start), start]]), cameFrom = new Map<string, string>(), cost = new Map<string, number>([[key(start), 0]]), estimate = new Map<string, number>([[key(start), distance(start, candidates[0])]]), expanded = new Set<string>();
   const directions = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
-  while (open.size > 0) {
+  const maxExpansions = (limit.maxX - limit.minX + 1) * (limit.maxY - limit.minY + 1);
+  while (open.size > 0 && expanded.size < maxExpansions) {
     let currentKey = [...open][0];
     for (const candidate of open) if ((estimate.get(candidate) ?? Infinity) < (estimate.get(currentKey) ?? Infinity)) currentKey = candidate;
     const current = cells.get(currentKey)!;
-    if (currentKey === key(goal)) return reconstruct(currentKey, cameFrom, cells);
     open.delete(currentKey);
-    for (const direction of directions) { const next = { x: current.x + direction.x, y: current.y + direction.y }; if (!inBounds(next, limit) || !walkable(next, world)) continue; const nextKey = key(next); cells.set(nextKey, next); const nextCost = (cost.get(currentKey) ?? Infinity) + 1; if (nextCost < (cost.get(nextKey) ?? Infinity)) { cameFrom.set(nextKey, currentKey); cost.set(nextKey, nextCost); estimate.set(nextKey, nextCost + distance(next, goal)); open.add(nextKey); } }
+    expanded.add(currentKey);
+    for (const direction of directions) { const next = { x: current.x + direction.x, y: current.y + direction.y }; if (!inBounds(next, limit) || !walkable(next, world)) continue; const nextKey = key(next); if (expanded.has(nextKey)) continue; cells.set(nextKey, next); const nextCost = (cost.get(currentKey) ?? Infinity) + 1; if (nextCost < (cost.get(nextKey) ?? Infinity)) { cameFrom.set(nextKey, currentKey); cost.set(nextKey, nextCost); estimate.set(nextKey, nextCost + distance(next, candidates[0])); open.add(nextKey); } }
+  }
+  for (const candidate of candidates) {
+    const candidateKey = key(candidate);
+    if (cost.has(candidateKey)) return reconstruct(candidateKey, cameFrom, cells);
   }
   return undefined;
 }
@@ -38,8 +43,7 @@ export class AStarNavigator implements Navigator {
     const limit = bounds(world), startCell = toCell(start), targetCell = toCell(requestedTarget), candidates: Cell[] = [];
     for (let radius = 0; radius <= 12; radius += 1) for (let y = targetCell.y - radius; y <= targetCell.y + radius; y += 1) for (let x = targetCell.x - radius; x <= targetCell.x + radius; x += 1) if (Math.max(Math.abs(x - targetCell.x), Math.abs(y - targetCell.y)) === radius) candidates.push({ x, y });
     candidates.sort((a, b) => distance(a, targetCell) - distance(b, targetCell));
-    for (const candidate of candidates) { const route = findPathToCell(startCell, candidate, world, limit); if (route) return route; }
-    return [start];
+    return findPathToCandidates(startCell, candidates, world, limit) ?? [start];
   }
 }
 export function findPath(start: WorldPoint, target: WorldPoint, world: WalkabilityMap): WorldPoint[] { return new AStarNavigator().findPath(start, target, world); }

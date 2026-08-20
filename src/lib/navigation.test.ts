@@ -42,6 +42,19 @@ describe('navigation', () => {
     expect(findPath(start, { x: 80, y: 40 }, world)).toEqual([start]);
   });
 
+  it('searches an enclosed target once instead of repeating the full map search', () => {
+    let walkabilityChecks = 0;
+    const center = { x: 160, y: 160 };
+    const world = navigationWorld((point) => {
+      walkabilityChecks += 1;
+      const distanceFromCenter = Math.max(Math.abs(point.x - center.x), Math.abs(point.y - center.y));
+      return distanceFromCenter >= 200 && distanceFromCenter <= 220;
+    });
+
+    expect(findPath({ x: -100, y: 160 }, center, world)).toEqual([{ x: -100, y: 160 }]);
+    expect(walkabilityChecks).toBeLessThan(20_000);
+  });
+
   it('returns the current position when no chunks are loaded', () => {
     const start = { x: -12, y: 24 };
     const world = { loadedChunks: [] } as unknown as WorldManager;
