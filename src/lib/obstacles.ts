@@ -11,12 +11,23 @@ export type HouseObstacle = { id: string; x: number; y: number; width: number; h
 export type { ObstacleConfig } from './obstacle-config';
 
 export class WorldCollisionService implements CollisionService {
+  private readonly configCache = new WeakMap<object, WorldConfig>();
+
+  private mergedConfig(config: Partial<WorldConfig> & Pick<WorldConfig, 'seed'>): WorldConfig {
+    let merged = this.configCache.get(config);
+    if (!merged) {
+      merged = mergeWorldConfig(config);
+      this.configCache.set(config, merged);
+    }
+    return merged;
+  }
+
   isBlocked(
     point: WorldPoint,
     chunk: CollisionSource,
     config: Partial<WorldConfig> & Pick<WorldConfig, 'seed'>,
   ): boolean {
-    const worldConfig = mergeWorldConfig(config);
+    const worldConfig = this.mergedConfig(config);
     if (biomeAt(point, worldConfig.seed, worldConfig.terrain) === 'ocean') return true;
     for (const tree of chunk.trees)
       if (Math.hypot(point.x - tree.x, point.y - tree.y) <= tree.radius) return true;

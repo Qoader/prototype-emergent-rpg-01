@@ -1,4 +1,5 @@
 import { advanceTowards, type Point } from './movement';
+import { type ChunkCoord, worldToChunk } from './coordinates';
 import type { Navigator } from './navigation';
 import type { WorldService } from './world-manager';
 
@@ -24,6 +25,7 @@ export class GameEngine {
   private destination: Point | undefined;
   private path: Point[] = [];
   private elapsed = 0;
+  private syncedChunk: ChunkCoord;
   private readonly config: EngineConfig;
   constructor(
     private readonly world: WorldService,
@@ -33,6 +35,7 @@ export class GameEngine {
   ) {
     this.config = { ...DEFAULT_ENGINE_CONFIG, ...config };
     this.world.syncAround(this.player);
+    this.syncedChunk = this.world.getChunkAt(this.player)?.coord ?? worldToChunk(this.player);
   }
   getSnapshot(): EngineSnapshot {
     return {
@@ -66,6 +69,14 @@ export class GameEngine {
         if (this.path.length === 0) this.destination = undefined;
       }
     }
-    this.world.syncAround(this.player);
+    const currentChunk = this.world.getChunkAt(this.player)?.coord;
+    if (
+      !currentChunk ||
+      currentChunk.x !== this.syncedChunk.x ||
+      currentChunk.y !== this.syncedChunk.y
+    ) {
+      this.world.syncAround(this.player);
+      this.syncedChunk = this.world.getChunkAt(this.player)?.coord ?? worldToChunk(this.player);
+    }
   }
 }

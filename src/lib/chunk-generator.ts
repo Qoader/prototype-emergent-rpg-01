@@ -19,6 +19,7 @@ export type WorldChunk = Readonly<{
   layout?: ReadonlyArray<SettlementFeature>;
   rivers: ReadonlyArray<RiverSegment>;
   lastSimulatedAt: number;
+  renderRevision?: number;
 }>;
 export interface ChunkGenerator {
   generate(coord: ChunkCoord): WorldChunk;
@@ -62,6 +63,7 @@ export class ProceduralChunkGenerator implements ChunkGenerator {
         this.config.rivers,
       ),
       lastSimulatedAt: 0,
+      renderRevision: 0,
     };
   }
 }

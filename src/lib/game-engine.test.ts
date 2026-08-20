@@ -25,6 +25,21 @@ function fakeWorld(): WorldService {
 }
 
 describe('GameEngine', () => {
+  it('does not resync the world on every movement tick within one chunk', () => {
+    let syncs = 0;
+    const world = fakeWorld();
+    const trackedWorld: WorldService = {
+      ...world,
+      syncAround: (point) => {
+        syncs += 1;
+        return world.syncAround(point);
+      },
+    };
+    const engine = new GameEngine(trackedWorld, new AStarNavigator());
+    for (let index = 0; index < 10; index += 1) engine.tick(1 / 60);
+    expect(syncs).toBe(1);
+  });
+
   it('moves headlessly and keeps its renderer-independent snapshot', () => {
     const engine = new GameEngine(
       fakeWorld(),

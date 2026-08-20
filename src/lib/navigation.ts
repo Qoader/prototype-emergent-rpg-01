@@ -11,8 +11,52 @@ export interface Navigator {
 type Cell = { x: number; y: number };
 type Bounds = { minX: number; minY: number; maxX: number; maxY: number };
 type WalkabilityCache = Map<string, boolean>;
+type QueueEntry = { key: string; priority: number };
+
+class MinHeap {
+  private readonly values: QueueEntry[] = [];
+
+  get size(): number {
+    return this.values.length;
+  }
+
+  push(value: QueueEntry): void {
+    this.values.push(value);
+    let index = this.values.length - 1;
+    while (index > 0) {
+      const parent = Math.floor((index - 1) / 2);
+      if (this.values[parent].priority <= value.priority) break;
+      this.values[index] = this.values[parent];
+      index = parent;
+    }
+    this.values[index] = value;
+  }
+
+  pop(): QueueEntry | undefined {
+    if (this.values.length === 0) return undefined;
+    const first = this.values[0],
+      last = this.values.pop()!;
+    if (this.values.length > 0) {
+      let index = 0;
+      while (true) {
+        const left = index * 2 + 1,
+          right = left + 1;
+        if (left >= this.values.length) break;
+        const child =
+          right < this.values.length && this.values[right].priority < this.values[left].priority
+            ? right
+            : left;
+        if (this.values[child].priority >= last.priority) break;
+        this.values[index] = this.values[child];
+        index = child;
+      }
+      this.values[index] = last;
+    }
+    return first;
+  }
+}
 const key = (cell: Cell) => `${cell.x},${cell.y}`;
-const pointKey = (point: WorldPoint) => `${point.x.toFixed(4)},${point.y.toFixed(4)}`;
+const pointKey = (point: WorldPoint) => `${point.x},${point.y}`;
 const distance = (a: Cell, b: Cell) => Math.hypot(a.x - b.x, a.y - b.y);
 const octileDistance = (a: Cell, b: Cell) => {
   const dx = Math.abs(a.x - b.x),
@@ -43,16 +87,21 @@ function bounds(world: WalkabilityMap): Bounds {
     maxY: (Math.max(...chunks.map((chunk) => chunk.coord.y)) + 1) * cellsPerChunk - 1,
   };
 }
+function localBounds(start: Cell, target: Cell, worldLimit: Bounds): Bounds {
+  const margin = 12;
+  return {
+    minX: Math.max(worldLimit.minX, Math.min(start.x, target.x) - margin),
+    minY: Math.max(worldLimit.minY, Math.min(start.y, target.y) - margin),
+    maxX: Math.min(worldLimit.maxX, Math.max(start.x, target.x) + margin),
+    maxY: Math.min(worldLimit.maxY, Math.max(start.y, target.y) + margin),
+  };
+}
 function inBounds(cell: Cell, limit: Bounds): boolean {
   return (
     cell.x >= limit.minX && cell.x <= limit.maxX && cell.y >= limit.minY && cell.y <= limit.maxY
   );
 }
-function walkablePoint(
-  point: WorldPoint,
-  world: WalkabilityMap,
-  cache: WalkabilityCache,
-): boolean {
+function walkablePoint(point: WorldPoint, world: WalkabilityMap, cache: WalkabilityCache): boolean {
   const cached = cache.get(pointKey(point));
   if (cached !== undefined) return cached;
   const result =
@@ -66,13 +115,10 @@ function walkable(cell: Cell, world: WalkabilityMap, cache: WalkabilityCache): b
   const center = cellCenter(cell);
   return walkablePoint(center, world, cache);
 }
-function hasLineOfSight(
-  a: Cell,
-  b: Cell,
-  world: WalkabilityMap,
-  cache: WalkabilityCache,
-): boolean {
-  const start = cellCenter(a), end = cellCenter(b), length = distance(a, b) * NAV_CELL_SIZE;
+function hasLineOfSight(a: Cell, b: Cell, world: WalkabilityMap, cache: WalkabilityCache): boolean {
+  const start = cellCenter(a),
+    end = cellCenter(b),
+    length = distance(a, b) * NAV_CELL_SIZE;
   const samples = Math.ceil(length / 4);
   for (let index = 0; index <= samples; index += 1) {
     const t = index / samples;
@@ -109,11 +155,13 @@ function findPathToCandidates(
   const walkabilityCache: WalkabilityCache = new Map();
   if (!inBounds(start, limit) || !walkable(start, world, walkabilityCache)) return undefined;
   const open = new Set<string>([key(start)]),
+    queue = new MinHeap(),
     cells = new Map<string, Cell>([[key(start), start]]),
     cameFrom = new Map<string, string | undefined>([[key(start), undefined]]),
     cost = new Map<string, number>([[key(start), 0]]),
     estimate = new Map<string, number>([[key(start), octileDistance(start, candidates[0])]]),
     expanded = new Set<string>();
+  queue.push({ key: key(start), priority: estimate.get(key(start))! });
   const directions = [
     { x: 1, y: 0 },
     { x: -1, y: 0 },
@@ -125,15 +173,10 @@ function findPathToCandidates(
     { x: -1, y: -1 },
   ];
   const maxExpansions = (limit.maxX - limit.minX + 1) * (limit.maxY - limit.minY + 1);
-  while (open.size > 0 && expanded.size < maxExpansions) {
-    let currentKey = [...open][0];
-    for (const candidate of open)
-      if (
-        (estimate.get(candidate) ?? Infinity) < (estimate.get(currentKey) ?? Infinity) ||
-        ((estimate.get(candidate) ?? Infinity) === (estimate.get(currentKey) ?? Infinity) &&
-          (cost.get(candidate) ?? Infinity) > (cost.get(currentKey) ?? Infinity))
-      )
-        currentKey = candidate;
+  while (queue.size > 0 && expanded.size < maxExpansions) {
+    const entry = queue.pop()!;
+    if (!open.has(entry.key) || entry.priority !== estimate.get(entry.key)) continue;
+    const currentKey = entry.key;
     const current = cells.get(currentKey)!;
     open.delete(currentKey);
     expanded.add(currentKey);
@@ -154,8 +197,10 @@ function findPathToCandidates(
       if (nextCost < (cost.get(nextKey) ?? Infinity)) {
         cameFrom.set(nextKey, throughParent);
         cost.set(nextKey, nextCost);
-        estimate.set(nextKey, nextCost + octileDistance(next, candidates[0]));
+        const nextEstimate = nextCost + octileDistance(next, candidates[0]);
+        estimate.set(nextKey, nextEstimate);
         open.add(nextKey);
+        queue.push({ key: nextKey, priority: nextEstimate });
       }
     }
   }
@@ -172,7 +217,7 @@ export class AStarNavigator implements Navigator {
   findPath(start: WorldPoint, requestedTarget: WorldPoint, world: WalkabilityMap): WorldPoint[] {
     const chunks = loadedChunks(world);
     if (chunks.length === 0) return [start];
-    const limit = bounds(world),
+    const worldLimit = bounds(world),
       startCell = toCell(start),
       targetCell = toCell(requestedTarget),
       candidates: Cell[] = [];
@@ -182,7 +227,16 @@ export class AStarNavigator implements Navigator {
           if (Math.max(Math.abs(x - targetCell.x), Math.abs(y - targetCell.y)) === radius)
             candidates.push({ x, y });
     candidates.sort((a, b) => distance(a, targetCell) - distance(b, targetCell));
-    return findPathToCandidates(startCell, candidates, world, limit) ?? [start];
+    const limit = localBounds(startCell, targetCell, worldLimit);
+    return (
+      findPathToCandidates(startCell, candidates, world, limit) ??
+      (limit.minX === worldLimit.minX &&
+      limit.minY === worldLimit.minY &&
+      limit.maxX === worldLimit.maxX &&
+      limit.maxY === worldLimit.maxY
+        ? undefined
+        : findPathToCandidates(startCell, candidates, world, worldLimit)) ?? [start]
+    );
   }
 }
 export function findPath(

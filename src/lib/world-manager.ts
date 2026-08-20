@@ -1,7 +1,12 @@
 import { chunkKey, worldToChunk, type ChunkCoord, type WorldPoint } from './coordinates';
 import { WorldCollisionService } from './obstacles';
 import { ProceduralChunkGenerator, type ChunkGenerator, type WorldChunk } from './chunk-generator';
-import { mergeWorldConfig, tierForDistance, type WorldConfig } from './world-config';
+import {
+  mergeWorldConfig,
+  tierForDistance,
+  type ChunkTier,
+  type WorldConfig,
+} from './world-config';
 
 export interface WorldService {
   syncAround(player: WorldPoint): ReadonlyArray<WorldChunk>;
@@ -15,6 +20,7 @@ export class WorldManager implements WorldService {
   readonly config: WorldConfig;
   private readonly generator: ChunkGenerator;
   private readonly chunks = new Map<string, WorldChunk>();
+  private loadedCache: ReadonlyArray<WorldChunk> = [];
   private readonly collision = new WorldCollisionService();
   private center: ChunkCoord = { x: 0, y: 0 };
   constructor(config: Partial<WorldConfig> = {}, generator?: ChunkGenerator) {
@@ -28,7 +34,7 @@ export class WorldManager implements WorldService {
     return { ...this.center };
   }
   getLoadedChunks(): ReadonlyArray<WorldChunk> {
-    return [...this.chunks.values()];
+    return this.loadedCache;
   }
   syncAround(player: WorldPoint): ReadonlyArray<WorldChunk> {
     this.center = worldToChunk(player, this.config.chunkSize);
@@ -38,17 +44,24 @@ export class WorldManager implements WorldService {
         const coord = { x: this.center.x + x, y: this.center.y + y },
           key = chunkKey(coord);
         next.add(key);
-        if (!this.chunks.has(key)) this.chunks.set(key, this.generator.generate(coord));
+        if (!this.chunks.has(key)) {
+          this.chunks.set(key, this.generator.generate(coord));
+          this.loadedCache = [...this.chunks.values()];
+        }
       }
     for (const [key, chunk] of this.chunks) {
       const distance = Math.max(
         Math.abs(chunk.coord.x - this.center.x),
         Math.abs(chunk.coord.y - this.center.y),
       );
-      if (distance > this.config.retentionRadius) this.chunks.delete(key);
-      else if (next.has(key))
-        this.chunks.set(key, { ...chunk, tier: tierForDistance(distance, this.config) });
-      else this.chunks.set(key, { ...chunk, tier: 3 });
+      if (distance > this.config.retentionRadius) {
+        this.chunks.delete(key);
+        this.loadedCache = [...this.chunks.values()];
+      } else {
+        (chunk as { tier: ChunkTier }).tier = next.has(key)
+          ? tierForDistance(distance, this.config)
+          : 3;
+      }
     }
     return this.getLoadedChunks();
   }
