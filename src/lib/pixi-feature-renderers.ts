@@ -2,6 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import type { WorldChunk } from './chunk-generator';
 import { CHUNK_SIZE } from './coordinates';
 import type { Road, SettlementFeature } from './settlements';
+import { clipPolylineToBounds, type WorldBounds } from './settlements/geometry';
 
 export const WORLD_PALETTE = {
   plains: 0x263f39,
@@ -84,7 +85,7 @@ export class NaturalObstacleRenderer {
 export class RoadRenderer {
   render(roads: ReadonlyArray<Road>, view: Container): void {
     for (const road of roads) {
-      const points = visiblePoints(road.points, view.x, view.y, 24);
+      const points = clipPolylineToBounds(road.points, chunkBounds(view.x, view.y), 24);
       if (points.length > 1) {
         const color = road.type === 'stone-paved' ? WORLD_PALETTE.stone : WORLD_PALETTE[road.type];
         view.addChild(polyline(points, view.x, view.y, 0x332d2d, ROAD_WIDTHS[road.type] + 5, 0.55));
@@ -191,6 +192,10 @@ function visiblePoints(
       point.y >= oy - padding &&
       point.y <= oy + CHUNK_SIZE + padding,
   );
+}
+
+function chunkBounds(x: number, y: number): WorldBounds {
+  return { minX: x, minY: y, maxX: x + CHUNK_SIZE, maxY: y + CHUNK_SIZE };
 }
 function polyline(
   points: ReadonlyArray<{ x: number; y: number }>,

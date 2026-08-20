@@ -3,6 +3,7 @@ import { biomeAt, type TerrainConfig } from '../terrain';
 import { DeterministicRandom } from '../deterministic-random';
 import type { Settlement, SettlementFeature } from './types';
 import { settlementTemplate, type SettlementTemplate } from './rules';
+import { settlementBounds, settlementConnector } from './geometry';
 
 type Bounds = { minX: number; minY: number; maxX: number; maxY: number };
 const boundsOf = (x: number, y: number, width: number, height: number): Bounds => ({
@@ -22,15 +23,15 @@ export class SettlementLayoutService {
     private readonly terrain: TerrainConfig,
   ) {}
 
-  layoutFor(settlement: Settlement): ReadonlyArray<SettlementFeature> {
+  layoutFor(
+    settlement: Settlement,
+    externalConnections: ReadonlyArray<WorldPoint> = [],
+  ): ReadonlyArray<SettlementFeature> {
     const hash = idHash(settlement.id),
       random = new DeterministicRandom(this.seed, hash, settlement.size),
-      template = settlementTemplate(settlement.type),
-      scale = settlement.size * CHUNK_SIZE,
-      cx = settlement.center.x,
-      cy = settlement.center.y;
+      template = settlementTemplate(settlement.type);
     const features: SettlementFeature[] = [];
-    const footprint = boundsOf(cx, cy, scale * 0.82, scale * 0.72);
+    const footprint = settlementBounds(settlement);
     const ground: SettlementFeature = {
       id: `${settlement.id}:ground`,
       settlementId: settlement.id,
@@ -45,7 +46,13 @@ export class SettlementLayoutService {
       style: biomeAt(settlement.center, this.seed, this.terrain),
     };
     features.push(ground);
-    const roadPoints = this.localRoads(settlement, footprint, template, random);
+    const roadPoints = this.localRoads(
+      settlement,
+      footprint,
+      template,
+      random,
+      externalConnections,
+    );
     roadPoints.forEach((points, index) =>
       features.push({
         id: `${settlement.id}:street:${index}`,
@@ -81,6 +88,7 @@ export class SettlementLayoutService {
     footprint: Bounds,
     template: SettlementTemplate,
     random: DeterministicRandom,
+    externalConnections: ReadonlyArray<WorldPoint>,
   ): WorldPoint[][] {
     const cx = settlement.center.x,
       cy = settlement.center.y,
@@ -110,6 +118,10 @@ export class SettlementLayoutService {
         { x: cx + Math.cos(angle + 0.12) * 18, y: cy + Math.sin(angle + 0.12) * 18 },
         end,
       ]);
+    }
+    for (const target of externalConnections) {
+      const anchor = settlementConnector(settlement, target);
+      roads.push([{ x: cx, y: cy }, anchor]);
     }
     if (settlement.type === 'city' || settlement.type === 'capital') {
       const ringX = (footprint.maxX - footprint.minX) * 0.26,

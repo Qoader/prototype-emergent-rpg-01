@@ -6,6 +6,12 @@ import { TerrainAwareRoadRouter } from './settlements/routing';
 import { SettlementLayoutService } from './settlements/layout';
 import type { Settlement } from './settlements/types';
 import { DEFAULT_TERRAIN_CONFIG } from './terrain';
+import {
+  clipPolylineToBounds,
+  polylineIntersectsBounds,
+  settlementConnector,
+} from './settlements/geometry';
+import { SettlementRoadNetwork } from './settlements/road-network';
 
 describe('settlement placement, topology, and routing', () => {
   it('deterministically produces regional quotas', () => {
@@ -100,5 +106,80 @@ describe('settlement placement, topology, and routing', () => {
     expect(first.some((feature) => feature.kind === 'gate' && feature.blocked === false)).toBe(
       true,
     );
+  });
+
+  it('clips sparse road segments that cross a chunk', () => {
+    const points = clipPolylineToBounds(
+      [
+        { x: -400, y: 64 },
+        { x: 400, y: 64 },
+      ],
+      { minX: 0, minY: 0, maxX: 128, maxY: 128 },
+    );
+    expect(points).toEqual([
+      { x: 0, y: 64 },
+      { x: 128, y: 64 },
+    ]);
+    expect(
+      polylineIntersectsBounds(
+        [
+          { x: -400, y: 64 },
+          { x: 400, y: 64 },
+        ],
+        { minX: 0, minY: 0, maxX: 128, maxY: 128 },
+      ),
+    ).toBe(true);
+  });
+
+  it('handles negative chunks and boundary-aligned roads', () => {
+    expect(
+      polylineIntersectsBounds(
+        [
+          { x: -256, y: -128 },
+          { x: -128, y: -128 },
+        ],
+        { minX: -256, minY: -256, maxX: -128, maxY: -128 },
+      ),
+    ).toBe(true);
+    expect(
+      clipPolylineToBounds(
+        [
+          { x: -300, y: -128 },
+          { x: -100, y: -128 },
+        ],
+        { minX: -256, minY: -256, maxX: -128, maxY: -128 },
+      ),
+    ).toEqual([
+      { x: -256, y: -128 },
+      { x: -128, y: -128 },
+    ]);
+  });
+
+  it('places connectors on the settlement boundary', () => {
+    const settlement: Settlement = {
+      id: 'city:anchor',
+      type: 'city',
+      center: { x: 0, y: 0 },
+      size: 1,
+      chunks: [],
+    };
+    const anchor = settlementConnector(settlement, { x: 1000, y: 1000 });
+    expect(anchor.x).toBeCloseTo(46.08);
+    expect(anchor.y).toBeCloseTo(46.08);
+  });
+
+  it('includes roads whose sparse segments cross a chunk', () => {
+    const make = (id: string, x: number, y: number): Settlement => ({
+      id,
+      type: 'village',
+      center: { x, y },
+      size: 1,
+      chunks: [],
+    });
+    const from = make('from-road', -400, 64),
+      to = make('to-road', 400, 64),
+      network = new SettlementRoadNetwork(42, DEFAULT_TERRAIN_CONFIG),
+      roads = network.roadsForChunk({ x: 0, y: 0 }, 128, [from, to]);
+    expect(roads.some((road) => road.from === from.id && road.to === to.id)).toBe(true);
   });
 });

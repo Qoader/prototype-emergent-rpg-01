@@ -17,7 +17,7 @@ export class SettlementGraph {
     config: SettlementConfig = DEFAULT_SETTLEMENT_CONFIG,
   ) {
     this.catalog = new SettlementCatalog(seed, terrain, config);
-    this.roads = new SettlementRoadNetwork(seed, terrain);
+    this.roads = new SettlementRoadNetwork(seed, terrain, config.queryRadius);
     this.layout = new SettlementLayoutService(seed, terrain);
   }
   featuresForChunk(coord: ChunkCoord, chunkSize = 128): SettlementFeatures {
@@ -26,9 +26,6 @@ export class SettlementGraph {
         settlement.chunks.some((chunk) => chunk.x === coord.x && chunk.y === coord.y),
       ),
       origin = chunkOrigin(coord, chunkSize),
-      region = this.catalog.regionFor(coord),
-      regionSpan = 200 * chunkSize,
-      regionCenter = { x: (region.x + 0.5) * regionSpan, y: (region.y + 0.5) * regionSpan },
       bounds = {
         minX: origin.x - 24,
         minY: origin.y - 24,
@@ -36,10 +33,25 @@ export class SettlementGraph {
         maxY: origin.y + chunkSize + 24,
       },
       layout: SettlementFeature[] = [];
+    const edges = this.roads.edgesForChunk(coord, chunkSize, universe),
+      byId = new Map(universe.map((settlement) => [settlement.id, settlement])),
+      connectors = new Map<string, { x: number; y: number }[]>();
+    for (const edge of edges) {
+      const from = byId.get(edge.from.id),
+        to = byId.get(edge.to.id);
+      if (from && to) {
+        (connectors.get(from.id) ?? (connectors.set(from.id, []), connectors.get(from.id)!)).push(
+          to.center,
+        );
+        (connectors.get(to.id) ?? (connectors.set(to.id, []), connectors.get(to.id)!)).push(
+          from.center,
+        );
+      }
+    }
     for (const settlement of universe) {
       let features = this.layouts.get(settlement.id);
       if (!features) {
-        features = this.layout.layoutFor(settlement);
+        features = this.layout.layoutFor(settlement, connectors.get(settlement.id) ?? []);
         this.layouts.set(settlement.id, features);
       }
       layout.push(
@@ -54,7 +66,7 @@ export class SettlementGraph {
     }
     return {
       settlements,
-      roads: this.roads.roadsForChunk(coord, chunkSize, regionCenter, universe),
+      roads: this.roads.roadsForChunk(coord, chunkSize, universe),
       layout,
     };
   }

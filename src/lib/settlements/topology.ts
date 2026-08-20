@@ -9,10 +9,7 @@ export class SettlementTopologyService {
     sources: ReadonlyArray<Settlement>,
     universe: ReadonlyArray<Settlement>,
   ): ReadonlyArray<SettlementEdge> {
-    const cacheKey = sources
-        .map((source) => source.id)
-        .sort()
-        .join('|'),
+    const cacheKey = sources.map((source) => source.id).join('|'),
       cached = this.cache.get(cacheKey);
     if (cached) return cached;
     const byType = new Map<SettlementType, Settlement[]>();
@@ -51,10 +48,21 @@ export class SettlementTopologyService {
           ),
           ROAD_FOR[node.type],
         );
-      const peers = (byType.get(node.type) ?? [])
-        .filter((peer) => peer.id !== node.id)
-        .sort((a, b) => distance(node, a) - distance(node, b))
-        .slice(0, 2);
+      const peers: Settlement[] = [];
+      for (const peer of byType.get(node.type) ?? []) {
+        if (peer.id === node.id) continue;
+        const peerDistance = distance(node, peer);
+        let insertAt = peers.length;
+        for (let index = 0; index < peers.length; index += 1)
+          if (peerDistance < distance(node, peers[index])) {
+            insertAt = index;
+            break;
+          }
+        if (insertAt < 2) {
+          peers.splice(insertAt, 0, peer);
+          peers.length = Math.min(2, peers.length);
+        }
+      }
       for (const peer of peers) connect(node, peer, ROAD_FOR[node.type]);
     }
     this.cache.set(cacheKey, edges);

@@ -1,5 +1,6 @@
 import { biomeAt, type TerrainConfig } from '../terrain';
 import type { WorldPoint } from '../coordinates';
+import { settlementConnector } from './geometry';
 import type { Road, SettlementEdge } from './types';
 
 export class TerrainAwareRoadRouter {
@@ -13,7 +14,10 @@ export class TerrainAwareRoadRouter {
       type: edge.type,
       from: edge.from.id,
       to: edge.to.id,
-      points: this.path(edge.from.center, edge.to.center),
+      points: this.path(
+        settlementConnector(edge.from, edge.to.center),
+        settlementConnector(edge.to, edge.from.center),
+      ),
     };
   }
   private path(start: WorldPoint, end: WorldPoint): ReadonlyArray<WorldPoint> {

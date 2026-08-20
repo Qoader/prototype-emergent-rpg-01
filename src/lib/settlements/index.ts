@@ -4,4 +4,5 @@ export * from './graph';
 export * from './layout';
 export * from './catalog';
 export * from './road-network';
+export * from './geometry';
 export * from './rules';
