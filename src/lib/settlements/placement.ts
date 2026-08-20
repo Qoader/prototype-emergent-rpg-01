@@ -16,7 +16,7 @@ export class SettlementPlacementService {
     const jitter = (salt: number) => seededHash(this.seed, region.x, region.y, definition.salt + index * 2 + salt);
     return { x: (region.x * span + (column + 0.2 + jitter(0) * 0.6) * span / definition.gridSide) * 128 + 64, y: (region.y * span + (cell + 0.2 + jitter(1) * 0.6) * span / definition.gridSide) * 128 + 64 };
   }
-  private suitability(point: WorldPoint): number { const biome = biomeAt(point, this.seed, this.terrain); return biome === 'plains' ? 3 : biome === 'forest' ? 1 : -100; }
+  private suitability(point: WorldPoint): number { const biome = biomeAt(point, this.seed, this.terrain); return biome === 'plains' || biome === 'coast' ? 3 : biome === 'forest' || biome === 'mountains' ? 1 : -100; }
   private createSettlement(region: SettlementRegion, definition: SettlementDefinition, index: number): Settlement {
     let center = this.candidateFor(region, definition, index), score = this.suitability(center);
     for (let attempt = 0; attempt < this.config.placementAttempts && score < 0; attempt += 1) {

@@ -2,17 +2,16 @@ import { Application, Container, Rectangle } from 'pixi.js';
 import type { EngineSnapshot, RendererAdapter } from './game-engine';
 import { screenToWorld } from './input-mapper';
 import { PixiChunkRenderer } from './pixi-chunk-renderer';
+import { PixiChunkEntity } from './pixi-chunk-entity';
 import { PixiPlayerRenderer } from './pixi-player-renderer';
 import type { WorldService } from './world-manager';
-import { chunkRenderSignature } from './chunk-signature';
 
 export class PixiRenderer implements RendererAdapter {
   readonly app = new Application();
   private readonly world = new Container();
   private readonly camera = new Container();
   private readonly map = new Container();
-  private readonly chunks = new Map<string, Container>();
-  private readonly chunkSignatures = new Map<string, string>();
+  private readonly chunks = new Map<string, PixiChunkEntity>();
   private readonly chunkRenderer = new PixiChunkRenderer();
   private readonly playerRenderer = new PixiPlayerRenderer();
   private zoom = 1;
@@ -29,11 +28,10 @@ export class PixiRenderer implements RendererAdapter {
     const chunks = this.worldService.getLoadedChunks(), active = new Set(chunks.map((chunk) => chunk.key));
     for (const chunk of chunks) {
       let view = this.chunks.get(chunk.key);
-      if (!view) { view = new Container(); this.map.addChildAt(view, 0); this.chunks.set(chunk.key, view); }
-      const signature = chunkRenderSignature(chunk);
-      if (this.chunkSignatures.get(chunk.key) !== signature) { this.chunkRenderer.render(chunk, view); this.chunkSignatures.set(chunk.key, signature); }
+      if (!view) { view = new PixiChunkEntity(this.chunkRenderer); this.map.addChildAt(view, 0); this.chunks.set(chunk.key, view); }
+      view.update(chunk);
     }
-    for (const [key, view] of this.chunks) if (!active.has(key)) { view.destroy({ children: true }); this.chunks.delete(key); this.chunkSignatures.delete(key); }
+    for (const [key, view] of this.chunks) if (!active.has(key)) { view.destroy({ children: true }); this.chunks.delete(key); }
     this.playerRenderer.render(snapshot); this.camera.scale.set(this.zoom); this.camera.position.set(this.app.screen.width / 2 - snapshot.player.x * this.zoom, this.app.screen.height / 2 - snapshot.player.y * this.zoom);
   }
   destroy(): void { this.app.destroy(true, { children: true, texture: true }); this.host = undefined; }

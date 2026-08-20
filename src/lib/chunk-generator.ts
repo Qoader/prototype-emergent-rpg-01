@@ -3,11 +3,11 @@ import { biomeAt } from './terrain';
 import { riversForChunk, type RiverSegment } from './rivers';
 import { type HouseObstacle, type TreeObstacle } from './obstacles';
 import { mergeWorldConfig, type WorldConfig, type ChunkTier } from './world-config';
-import { SettlementGraph, type Settlement } from './settlements';
+import { SettlementGraph, type Settlement, type SettlementFeature } from './settlements';
 import type { Road } from './settlements';
 import { ProceduralTreeGenerator } from './tree-generator';
 
-export type WorldChunk = Readonly<{ key: string; coord: ChunkCoord; tier: ChunkTier; biome: ReturnType<typeof biomeAt>; trees: ReadonlyArray<TreeObstacle>; houses: ReadonlyArray<HouseObstacle>; settlements?: ReadonlyArray<Settlement>; roads?: ReadonlyArray<Road>; rivers: ReadonlyArray<RiverSegment>; lastSimulatedAt: number }>;
+export type WorldChunk = Readonly<{ key: string; coord: ChunkCoord; tier: ChunkTier; biome: ReturnType<typeof biomeAt>; trees: ReadonlyArray<TreeObstacle>; houses: ReadonlyArray<HouseObstacle>; settlements?: ReadonlyArray<Settlement>; roads?: ReadonlyArray<Road>; layout?: ReadonlyArray<SettlementFeature>; rivers: ReadonlyArray<RiverSegment>; lastSimulatedAt: number }>;
 export interface ChunkGenerator { generate(coord: ChunkCoord): WorldChunk; }
 
 export class ProceduralChunkGenerator implements ChunkGenerator {
@@ -22,6 +22,6 @@ export class ProceduralChunkGenerator implements ChunkGenerator {
     const trees: TreeObstacle[] = [...this.treeGenerator.generateForChunk(coord)];
     const houses: HouseObstacle[] = [];
     const features = this.settlementGraph.featuresForChunk(coord, this.config.chunkSize);
-    return { key, coord, tier: 3, biome, trees, houses, settlements: features.settlements, roads: features.roads, rivers: riversForChunk(coord, this.config.seed, this.config.chunkSize, this.config.terrain, this.config.rivers), lastSimulatedAt: 0 };
+    return { key, coord, tier: 3, biome, trees, houses, settlements: features.settlements, roads: features.roads, layout: features.layout, rivers: riversForChunk(coord, this.config.seed, this.config.chunkSize, this.config.terrain, this.config.rivers), lastSimulatedAt: 0 };
   }
 }

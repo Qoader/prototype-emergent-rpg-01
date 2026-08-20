@@ -3,6 +3,7 @@ import { DEFAULT_SETTLEMENT_CONFIG } from './settlements/config';
 import { SettlementPlacementService } from './settlements/placement';
 import { SettlementTopologyService } from './settlements/topology';
 import { TerrainAwareRoadRouter } from './settlements/routing';
+import { SettlementLayoutService } from './settlements/layout';
 import type { Settlement } from './settlements/types';
 import { DEFAULT_TERRAIN_CONFIG } from './terrain';
 
@@ -36,4 +37,16 @@ describe('settlement placement, topology, and routing', () => {
     const middle = road.points[4], start = road.points[0], end = road.points.at(-1)!;
     expect((middle.x - start.x) * (end.y - start.y)).not.toBe((middle.y - start.y) * (end.x - start.x));
   });
+
+  it('produces deterministic full layouts with walkable streets', () => {
+    const settlement: Settlement = { id: 'city:test', type: 'city', center: { x: 256, y: 256 }, size: 8, chunks: [] };
+    const service = new SettlementLayoutService(42, DEFAULT_TERRAIN_CONFIG);
+    const first = service.layoutFor(settlement), second = service.layoutFor(settlement);
+    expect(first).toEqual(second);
+    expect(first.some((feature) => feature.kind === 'building' && feature.blocked)).toBe(true);
+    expect(first.some((feature) => feature.kind === 'street' && feature.blocked === false)).toBe(true);
+    expect(first.some((feature) => feature.kind === 'wall')).toBe(true);
+    expect(first.some((feature) => feature.kind === 'gate' && feature.blocked === false)).toBe(true);
+  });
+
 });

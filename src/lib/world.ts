@@ -3,6 +3,8 @@ export * from './coordinates';
 export * from './terrain';
 export * from './rivers';
 export * from './obstacles';
+export * from './collision-types';
+export * from './deterministic-random';
 export * from './world-config';
 export type { ChunkGenerator as ChunkGeneratorService, WorldChunk } from './chunk-generator';
 export * from './world-manager';

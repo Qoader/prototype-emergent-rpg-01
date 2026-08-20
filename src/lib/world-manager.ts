@@ -1,5 +1,5 @@
 import { chunkKey, worldToChunk, type ChunkCoord, type WorldPoint } from './coordinates';
-import { isPointBlocked } from './obstacles';
+import { WorldCollisionService } from './obstacles';
 import { ProceduralChunkGenerator, type ChunkGenerator, type WorldChunk } from './chunk-generator';
 import { mergeWorldConfig, tierForDistance, type WorldConfig } from './world-config';
 
@@ -15,6 +15,7 @@ export class WorldManager implements WorldService {
   readonly config: WorldConfig;
   private readonly generator: ChunkGenerator;
   private readonly chunks = new Map<string, WorldChunk>();
+  private readonly collision = new WorldCollisionService();
   private center: ChunkCoord = { x: 0, y: 0 };
   constructor(config: Partial<WorldConfig> = {}, generator?: ChunkGenerator) { this.config = mergeWorldConfig(config); this.generator = generator ?? new ProceduralChunkGenerator(this.config); }
   get loadedChunks(): ReadonlyArray<WorldChunk> { return this.getLoadedChunks(); }
@@ -37,7 +38,7 @@ export class WorldManager implements WorldService {
     return this.getLoadedChunks();
   }
   getChunkAt(point: WorldPoint): WorldChunk | undefined { return this.chunks.get(chunkKey(worldToChunk(point, this.config.chunkSize))); }
-  isWalkable(point: WorldPoint): boolean { const chunk = this.getChunkAt(point); return !!chunk && !isPointBlocked(point, chunk, this.config); }
+  isWalkable(point: WorldPoint): boolean { const chunk = this.getChunkAt(point); return !!chunk && !this.collision.isBlocked(point, chunk, this.config); }
   tick(_deltaSeconds: number, now: number): void {
     for (const [key, chunk] of this.chunks) {
       const due = chunk.tier === 0 || (chunk.tier === 1 && now - chunk.lastSimulatedAt >= 0.25) || (chunk.tier === 2 && now - chunk.lastSimulatedAt >= 30);
