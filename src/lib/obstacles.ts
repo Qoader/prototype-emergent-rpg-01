@@ -2,11 +2,13 @@ import type { WorldChunk } from './chunk-generator';
 import type { WorldPoint } from './coordinates';
 import { biomeAt } from './terrain';
 import { mergeWorldConfig, type WorldConfig } from './world-config';
+import type { ObstacleConfig } from './obstacle-config';
+
+export { DEFAULT_OBSTACLE_CONFIG } from './obstacle-config';
 
 export type TreeObstacle = { id: string; x: number; y: number; radius: number };
 export type HouseObstacle = { id: string; x: number; y: number; width: number; height: number };
-export type ObstacleConfig = { treeMargin: number; forestTreeCount: number; plainsTreeBase: number; plainsTreeVariance: number; forestTreeRadius: number; plainsTreeRadius: number; houseChance: number; houseX: number; houseY: number; houseWidth: number; houseHeight: number; riverCollisionWidth: number };
-export const DEFAULT_OBSTACLE_CONFIG: ObstacleConfig = { treeMargin: 16, forestTreeCount: 7, plainsTreeBase: 2, plainsTreeVariance: 3, forestTreeRadius: 13, plainsTreeRadius: 11, houseChance: 0.65, houseX: 38, houseY: 42, houseWidth: 52, houseHeight: 38, riverCollisionWidth: 12 };
+export type { ObstacleConfig } from './obstacle-config';
 
 function distanceToSegment(point: WorldPoint, start: WorldPoint, end: WorldPoint): number {
   const dx = end.x - start.x, dy = end.y - start.y, lengthSquared = dx * dx + dy * dy;

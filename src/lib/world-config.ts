@@ -1,7 +1,7 @@
 import { CHUNK_SIZE } from './coordinates';
 import { DEFAULT_TERRAIN_CONFIG, type TerrainConfig } from './terrain';
 import { DEFAULT_RIVER_CONFIG, type RiverConfig } from './rivers';
-import { DEFAULT_OBSTACLE_CONFIG, type ObstacleConfig } from './obstacles';
+import { DEFAULT_OBSTACLE_CONFIG, type ObstacleConfig } from './obstacle-config';
 
 export type ChunkTier = 0 | 1 | 2 | 3;
 export type WorldConfig = { seed: number; chunkSize: number; tier1Radius: number; tier2Radius: number; retentionRadius: number; terrain: TerrainConfig; rivers: RiverConfig; obstacles: ObstacleConfig };

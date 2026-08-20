@@ -11,6 +11,14 @@ pnpm dev
 
 Run the unit and integration tests with `pnpm test`, or use `pnpm test:watch` during development.
 
+Run the headless Chromium browser tests with `pnpm test:e2e`. On a new machine, install the browser first:
+
+```bash
+pnpm exec playwright install chromium
+```
+
+Use `pnpm test:e2e:ui` to run the Playwright test runner in UI mode.
+
 ## GitHub Pages
 
 The included GitHub Actions workflow builds on every push to `main` and publishes the production `dist` output to a dedicated `gh-pages` branch. Enable **Settings → Pages → Deploy from a branch → gh-pages / root** in repository settings.
