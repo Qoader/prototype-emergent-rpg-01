@@ -14,7 +14,11 @@ test.describe('Emberfall shell', () => {
     await page.goto('/');
     const canvas = page.locator('canvas');
     await expect(canvas).toBeVisible();
-    await expect.poll(async () => canvas.evaluate((element) => ({ width: element.width, height: element.height }))).toMatchObject({ width: expect.any(Number), height: expect.any(Number) });
+    await expect
+      .poll(async () =>
+        canvas.evaluate((element) => ({ width: element.width, height: element.height })),
+      )
+      .toMatchObject({ width: expect.any(Number), height: expect.any(Number) });
     await page.mouse.click(320, 240);
     await expect(canvas).toBeVisible();
   });

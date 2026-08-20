@@ -14,5 +14,9 @@ export type CollisionSource = Readonly<{
 }>;
 
 export interface CollisionService {
-  isBlocked(point: WorldPoint, source: CollisionSource, config: Partial<WorldConfig> & Pick<WorldConfig, 'seed'>): boolean;
+  isBlocked(
+    point: WorldPoint,
+    source: CollisionSource,
+    config: Partial<WorldConfig> & Pick<WorldConfig, 'seed'>,
+  ): boolean;
 }

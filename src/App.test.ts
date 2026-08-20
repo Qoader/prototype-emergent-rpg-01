@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App.svelte';
 
 const mockGame = vi.hoisted(() => ({
-  mount: vi.fn(async (_host: HTMLElement) => {}),
+  mount: vi.fn(async () => {}),
   destroy: vi.fn(),
 }));
 
@@ -11,7 +11,10 @@ vi.mock('./lib/game', () => ({ EmberfallGame: vi.fn(() => mockGame) }));
 
 describe('App integration', () => {
   afterEach(() => cleanup());
-  beforeEach(() => { mockGame.mount.mockClear(); mockGame.destroy.mockClear(); });
+  beforeEach(() => {
+    mockGame.mount.mockClear();
+    mockGame.destroy.mockClear();
+  });
 
   it('mounts the exploration game without lumen controls', async () => {
     render(App);

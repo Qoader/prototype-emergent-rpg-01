@@ -5,7 +5,9 @@ import { PixiChunkRenderer } from './pixi-chunk-renderer';
 
 export class PixiChunkEntity extends Container {
   private signature = '';
-  constructor(private readonly renderer: PixiChunkRenderer) { super(); }
+  constructor(private readonly renderer: PixiChunkRenderer) {
+    super();
+  }
   update(chunk: WorldChunk): void {
     const nextSignature = chunkRenderSignature(chunk);
     if (nextSignature === this.signature) return;

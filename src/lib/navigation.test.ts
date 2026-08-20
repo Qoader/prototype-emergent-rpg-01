@@ -4,9 +4,19 @@ import { CHUNK_SIZE, type WorldPoint, type WorldChunk, type WorldManager } from 
 
 function navigationWorld(blocked: (point: WorldPoint) => boolean) {
   const chunks: WorldChunk[] = [];
-  for (let y = -1; y <= 1; y += 1) for (let x = -1; x <= 1; x += 1) {
-    chunks.push({ key: `${x},${y}`, coord: { x, y }, tier: 0, biome: 'plains', trees: [], houses: [], rivers: [], lastSimulatedAt: 0 });
-  }
+  for (let y = -1; y <= 1; y += 1)
+    for (let x = -1; x <= 1; x += 1) {
+      chunks.push({
+        key: `${x},${y}`,
+        coord: { x, y },
+        tier: 0,
+        biome: 'plains',
+        trees: [],
+        houses: [],
+        rivers: [],
+        lastSimulatedAt: 0,
+      });
+    }
   return {
     config: { seed: 1, chunkSize: CHUNK_SIZE, tier1Radius: 1, tier2Radius: 4, retentionRadius: 5 },
     loadedChunks: chunks,
@@ -47,7 +57,10 @@ describe('navigation', () => {
     const center = { x: 160, y: 160 };
     const world = navigationWorld((point) => {
       walkabilityChecks += 1;
-      const distanceFromCenter = Math.max(Math.abs(point.x - center.x), Math.abs(point.y - center.y));
+      const distanceFromCenter = Math.max(
+        Math.abs(point.x - center.x),
+        Math.abs(point.y - center.y),
+      );
       return distanceFromCenter >= 200 && distanceFromCenter <= 220;
     });
 

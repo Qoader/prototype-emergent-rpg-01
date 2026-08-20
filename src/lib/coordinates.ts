@@ -4,7 +4,9 @@ export const NAV_CELL_SIZE = 16;
 export type ChunkCoord = { x: number; y: number };
 export type WorldPoint = { x: number; y: number };
 
-export function chunkKey(coord: ChunkCoord): string { return `${coord.x},${coord.y}`; }
+export function chunkKey(coord: ChunkCoord): string {
+  return `${coord.x},${coord.y}`;
+}
 export function worldToChunk(point: WorldPoint, chunkSize = CHUNK_SIZE): ChunkCoord {
   return { x: Math.floor(point.x / chunkSize), y: Math.floor(point.y / chunkSize) };
 }

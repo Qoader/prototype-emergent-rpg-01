@@ -7,7 +7,9 @@ export function seededHash(seed: number, x: number, y: number, salt: number): nu
 }
 
 export function heightAt(point: WorldPoint, seed: number): number {
-  const broad = Math.sin((point.x + seed * 0.17) / 720) * 0.22 + Math.cos((point.y - seed * 0.11) / 910) * 0.2;
-  const detail = Math.sin((point.x + point.y) / 190 + seed) * 0.06 + Math.cos((point.x - point.y) / 260) * 0.05;
+  const broad =
+    Math.sin((point.x + seed * 0.17) / 720) * 0.22 + Math.cos((point.y - seed * 0.11) / 910) * 0.2;
+  const detail =
+    Math.sin((point.x + point.y) / 190 + seed) * 0.06 + Math.cos((point.x - point.y) / 260) * 0.05;
   return 0.52 + broad + detail;
 }

@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { ChunkGenerator, WorldManager, biomeAt, chunkOrigin, isPointBlocked, tierForDistance, worldToChunk, worldToLocal } from './world';
+import {
+  ChunkGenerator,
+  WorldManager,
+  biomeAt,
+  chunkOrigin,
+  isPointBlocked,
+  tierForDistance,
+  worldToChunk,
+  worldToLocal,
+} from './world';
 
 describe('world coordinates', () => {
   it('maps negative positions into the correct chunk and local space', () => {
@@ -26,8 +35,17 @@ describe('procedural terrain and obstacles', () => {
     const coordinate = { x: 4, y: -2 };
     const first = new ChunkGenerator({ seed: 1 }).generate(coordinate);
     const second = new ChunkGenerator({ seed: 2 }).generate(coordinate);
-    expect({ biome: first.biome, trees: first.trees, houses: first.houses, rivers: first.rivers })
-      .not.toEqual({ biome: second.biome, trees: second.trees, houses: second.houses, rivers: second.rivers });
+    expect({
+      biome: first.biome,
+      trees: first.trees,
+      houses: first.houses,
+      rivers: first.rivers,
+    }).not.toEqual({
+      biome: second.biome,
+      trees: second.trees,
+      houses: second.houses,
+      rivers: second.rivers,
+    });
   });
 
   it('keeps generated trees and houses inside their chunk bounds', () => {
@@ -47,7 +65,9 @@ describe('procedural terrain and obstacles', () => {
   });
 
   it('classifies high, low, and intermediate world regions into biomes', () => {
-    const samples = [-2000, -1000, 0, 1000, 2000].flatMap((x) => [-2000, -1000, 0, 1000, 2000].map((y) => biomeAt({ x, y }, 42)));
+    const samples = [-2000, -1000, 0, 1000, 2000].flatMap((x) =>
+      [-2000, -1000, 0, 1000, 2000].map((y) => biomeAt({ x, y }, 42)),
+    );
     expect(samples).toContain('ocean');
     expect(samples).toContain('mountains');
     expect(samples).toContain('plains');
@@ -55,39 +75,77 @@ describe('procedural terrain and obstacles', () => {
 
   it('marks generated trees and houses as blocked', () => {
     const chunk = new ChunkGenerator({ seed: 42 }).generate({ x: 0, y: 0 });
-    if (chunk.trees[0]) expect(isPointBlocked(chunk.trees[0], chunk, { seed: 42, chunkSize: 128, tier1Radius: 1, tier2Radius: 4, retentionRadius: 5 })).toBe(true);
-    if (chunk.houses[0]) expect(isPointBlocked({ x: chunk.houses[0].x + 2, y: chunk.houses[0].y + 2 }, chunk, { seed: 42, chunkSize: 128, tier1Radius: 1, tier2Radius: 4, retentionRadius: 5 })).toBe(true);
+    if (chunk.trees[0])
+      expect(
+        isPointBlocked(chunk.trees[0], chunk, {
+          seed: 42,
+          chunkSize: 128,
+          tier1Radius: 1,
+          tier2Radius: 4,
+          retentionRadius: 5,
+        }),
+      ).toBe(true);
+    if (chunk.houses[0])
+      expect(
+        isPointBlocked({ x: chunk.houses[0].x + 2, y: chunk.houses[0].y + 2 }, chunk, {
+          seed: 42,
+          chunkSize: 128,
+          tier1Radius: 1,
+          tier2Radius: 4,
+          retentionRadius: 5,
+        }),
+      ).toBe(true);
   });
 
   it('marks ocean cells as blocked', () => {
     const generator = new ChunkGenerator({ seed: 42 });
     let oceanChunk;
-    for (let y = -20; y <= 20 && !oceanChunk; y += 1) for (let x = -20; x <= 20; x += 1) {
-      const candidate = generator.generate({ x, y });
-      if (candidate.biome === 'ocean') oceanChunk = candidate;
-    }
+    for (let y = -20; y <= 20 && !oceanChunk; y += 1)
+      for (let x = -20; x <= 20; x += 1) {
+        const candidate = generator.generate({ x, y });
+        if (candidate.biome === 'ocean') oceanChunk = candidate;
+      }
     expect(oceanChunk).toBeDefined();
     const point = { x: oceanChunk!.coord.x * 128 + 64, y: oceanChunk!.coord.y * 128 + 64 };
-    expect(isPointBlocked(point, oceanChunk!, { seed: 42, chunkSize: 128, tier1Radius: 1, tier2Radius: 4, retentionRadius: 5 })).toBe(true);
+    expect(
+      isPointBlocked(point, oceanChunk!, {
+        seed: 42,
+        chunkSize: 128,
+        tier1Radius: 1,
+        tier2Radius: 4,
+        retentionRadius: 5,
+      }),
+    ).toBe(true);
   });
 
   it('marks a river centerline as blocked in every chunk it crosses', () => {
     const generator = new ChunkGenerator({ seed: 42 });
     let riverChunk;
-    for (let y = -20; y <= 20 && !riverChunk; y += 1) for (let x = -20; x <= 20; x += 1) {
-      const candidate = generator.generate({ x, y });
-      if (candidate.rivers.length > 0) riverChunk = candidate;
-    }
+    for (let y = -20; y <= 20 && !riverChunk; y += 1)
+      for (let x = -20; x <= 20; x += 1) {
+        const candidate = generator.generate({ x, y });
+        if (candidate.rivers.length > 0) riverChunk = candidate;
+      }
     expect(riverChunk).toBeDefined();
-    const riverPoint = riverChunk!.rivers[0].points[Math.floor(riverChunk!.rivers[0].points.length / 2)];
+    const riverPoint =
+      riverChunk!.rivers[0].points[Math.floor(riverChunk!.rivers[0].points.length / 2)];
     const owningChunk = generator.generate(worldToChunk(riverPoint));
-    expect(isPointBlocked(riverPoint, owningChunk, { seed: 42, chunkSize: 128, tier1Radius: 1, tier2Radius: 4, retentionRadius: 5 })).toBe(true);
+    expect(
+      isPointBlocked(riverPoint, owningChunk, {
+        seed: 42,
+        chunkSize: 128,
+        tier1Radius: 1,
+        tier2Radius: 4,
+        retentionRadius: 5,
+      }),
+    ).toBe(true);
   });
 
   it('creates deterministic river paths from mountain sources toward low terrain', () => {
     const generator = new ChunkGenerator({ seed: 42 });
     const chunks = [];
-    for (let y = -12; y <= 12; y += 1) for (let x = -12; x <= 12; x += 1) chunks.push(generator.generate({ x, y }));
+    for (let y = -12; y <= 12; y += 1)
+      for (let x = -12; x <= 12; x += 1) chunks.push(generator.generate({ x, y }));
     const rivers = chunks.flatMap((chunk) => chunk.rivers);
     expect(rivers.length).toBeGreaterThan(0);
     const river = rivers[0];
@@ -97,7 +155,12 @@ describe('procedural terrain and obstacles', () => {
   });
 
   it('assigns centered simulation rings', () => {
-    expect([tierForDistance(0), tierForDistance(1), tierForDistance(2), tierForDistance(5)]).toEqual([0, 1, 2, 3]);
+    expect([
+      tierForDistance(0),
+      tierForDistance(1),
+      tierForDistance(2),
+      tierForDistance(5),
+    ]).toEqual([0, 1, 2, 3]);
   });
 });
 
